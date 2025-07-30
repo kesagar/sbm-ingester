@@ -1,0 +1,90 @@
+name: Deploy Lambdas
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # --------------------
+      # Build Ingester Lambda (requirements inside src)
+      # --------------------
+      - name: Build Ingester Lambda
+        run: |
+          mkdir -p build/ingester
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r ingester/src/requirements.txt -t build/ingester/
+          cp -r ingester/src/* build/ingester/
+          cd build/ingester && zip -r ../../ingester.zip . && cd ../..
+
+      # --------------------
+      # Build Redrive Lambda
+      # --------------------
+      - name: Build Redrive Lambda
+        run: |
+          mkdir -p build/redrive
+          cp -r redrive/src/* build/redrive/
+          cd build/redrive && zip -r ../../redrive.zip . && cd ../..
+
+      # --------------------
+      # Build Nem12 Mappings Lambda
+      # --------------------
+      - name: Build Nem12 Mappings Lambda
+        run: |
+          mkdir -p build/nem12_mappings_to_s3
+          cp -r nem12_mappings_to_s3/src/* build/nem12_mappings_to_s3/
+          cd build/nem12_mappings_to_s3 && zip -r ../../nem12-mappings-to-s3.zip . && cd ../..
+
+      # --------------------
+      # Configure AWS
+      # --------------------
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # --------------------
+      # Upload & Refresh Lambdas
+      # --------------------
+      - name: Upload Ingester & Refresh
+        run: |
+          aws s3 cp ingester.zip s3://gega-code-deployment-bucket/sbm-files-ingester/ingester.zip
+          aws lambda update-function-code \
+            --function-name sbm-files-ingester \
+            --s3-bucket gega-code-deployment-bucket \
+            --s3-key sbm-files-ingester/ingester.zip \
+            --publish
+
+      - name: Upload Redrive & Refresh
+        run: |
+          aws s3 cp redrive.zip s3://gega-code-deployment-bucket/sbm-files-ingester/redrive.zip
+          aws lambda update-function-code \
+            --function-name sbm-files-ingester-redrive \
+            --s3-bucket gega-code-deployment-bucket \
+            --s3-key sbm-files-ingester/redrive.zip \
+            --publish
+
+      - name: Upload Nem12 Mappings & Refresh
+        run: |
+          aws s3 cp nem12-mappings-to-s3.zip s3://gega-code-deployment-bucket/sbm-files-ingester/nem12-mappings-to-s3.zip
+          aws lambda update-function-code \
+            --function-name sbm-files-ingester-nem12-mappings-to-s3 \
+            --s3-bucket gega-code-deployment-bucket \
+            --s3-key sbm-files-ingester/nem12-mappings-to-s3.zip \
+            --publish
