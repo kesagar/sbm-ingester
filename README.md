@@ -7,18 +7,6 @@ The system is **event-driven**, using **S3 → SQS → Lambda → API Gateway** 
 
 ## 📐 Architecture Overview
 
-```mermaid
-flowchart TD
-    A[S3 Bucket: sbm-file-ingester] -- ObjectCreated:newTBP/ --> B[SQS Queue: sbm-files-ingester-queue]
-    B --> C[Lambda: sbm-files-ingester]
-    C --> D[(CloudWatch Logs)]
-    B --> E[Lambda: sbm-files-ingester-redrive]
-    E --> D
-    F[Lambda: sbm-files-ingester-nem12-mappings-to-s3] --> D
-    F -- API Gateway --> G[REST API /nem12-mappings]
-    F -- CloudWatch Event Rule --> H[Hourly Trigger]
-```
-
 The ingestion pipeline is designed as follows:
 
 1. **S3 Event Notifications**  
@@ -26,7 +14,7 @@ The ingestion pipeline is designed as follows:
    - Notifications are sent to an **SQS queue** `sbm-files-ingester-queue`.  
 
 2. **Lambda Processing**  
-   - The `sbm-files-ingester` Lambda consumes messages from SQS and processes the files.  
+   - The `sbm-files-ingester` Lambda consumes messages from SQS and processes the files. After processing, goes to hudibucketsrc as before.
    - Errors or failures are handled by the `sbm-files-ingester-redrive` Lambda.  
 
 3. **Scheduled Processing**  
