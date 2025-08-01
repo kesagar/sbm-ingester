@@ -17,6 +17,7 @@ flowchart TD
     F[Lambda: sbm-files-ingester-nem12-mappings-to-s3] --> D
     F -- API Gateway --> G[REST API /nem12-mappings]
     F -- CloudWatch Event Rule --> H[Hourly Trigger]
+```
 
 The ingestion pipeline is designed as follows:
 
