@@ -70,7 +70,7 @@ def download_files_to_tmp(file_list, tmp_files_folder_path):
 
 
 def move_s3_file(bucket_name: str, source_key: str, dest_prefix: str):
-    source_key = unquote(source_key.replace("+", "%20"))
+    #source_key = unquote(source_key.replace("+", "%20"))
     file_name = source_key.split("/")[-1]
 
     source_key = f"newTBP/{file_name}"
